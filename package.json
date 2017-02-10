@@ -4,6 +4,7 @@
 	"private": true,
 	"dependencies": {
 		"ws": "1.1.0",
-		"onoff": "1.0.4"
+		"onoff": "1.0.4",
+		"fs-exists-sync":"0.1.0"
   }
 }
