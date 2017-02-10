@@ -15,39 +15,22 @@
  */
 
 var myLEDState = 0;
-
-var webSocketUrl = "wss://api.samsungsami.io/v1.1/websocket?ack=true";
-var cloud_light_id = "c15fae7f2e584eeebb3b0ef6fa917315"; // update the id, every time the device is attached to the user account
-var token = "54506706e7d3467190f263ca69b4ae7c"; 
-/** 
-* USER TOKEN:The token(/bearer) information obtained from calling the self API is the user token 
-* The user token is valid as long as the user is logged into the artik cloud account by default 
-*  
-* DEVICE TOKEN: The token(/bearer) information obtained from attaching the device to the user account  
-* is the Device token. It is valid as long as the device is attached to the user account by default 
-*   
-* APPLICATION TOKEN: 
-* The session token is valid for 15 min since it is created by default 
-**/ 
-
-
+var moduleIndex = 0;
 
 var WebSocket = require('ws');
-var isWebSocketReady = false;
-var ws = null;
 
-var Gpio = require('onoff').Gpio,
-    led = new Gpio(135, 'out'),
-    led2 = new Gpio(134, 'out'),
-    led3 = new Gpio(129, 'out'),
-    led4 = new Gpio(127, 'out'),
-    led5 = new Gpio(126, 'out'),
-    led6 = new Gpio(125, 'out');
+var ws = null;
+var fs = require('fs');
+
+var Gpio = require('onoff').Gpio;
+var led, led2; // will be initialized upon reading from the config file
 
 var sleep = require('sleep');
 
+
 function exit() {
-  led.unexport();
+  led.unexport(); 
+  led2.unexport(); 
   process.exit();
 }
 
@@ -61,16 +44,16 @@ function getTimeMillis(){
 /**
  * Create a websocket connection and setup GPIO pin
  */
-function start() {
+function start(configFile, moduleIndex) {
 
-  console.log("Hello World....");
+
+  console.log("Connecting through "+config.artikCloud.url.webSocketUrl);
   
   //Create the WebSocket connection
-  isWebSocketReady = false;
-  ws = new WebSocket(webSocketUrl);
+  ws = new WebSocket(config.artikCloud.url.webSocketUrl); 
   ws.on('open', function() {
       console.log("WebSocket connection is open ....");
-      register();
+      register(config);
   });
   ws.on('message', function(data) {
       console.log("Received message: " + data + '\n');
@@ -80,36 +63,38 @@ function start() {
        console.log("WebSocket connection is closed ....");
   });
 
-  myButtonState = false;
+  led = new Gpio(config.module[moduleIndex].led.gpio1, 'out'),
+  led2 = new Gpio(config.module[moduleIndex].led.gpio2, 'out');  
 }
 
 
 function toggleLED(value) {
 
   console.log('Toggle LED Called '+value);
+
 	led.writeSync( (value?1:0) , function(error) {
           if(error) throw error;
-             console.log('toggleLED: wrote ' + value + ' to pin #' + myPin);
+             console.log('toggleLED: wrote ' + value + ' to pin #' + led);
              myLEDState = value;
-             sendStateToSami();
+             sendStateToArtikCloud();
     });
-// console.log(' out of toggleLED');
+
+  console.log(' Sending state to AKC');
 }
 
 
-
-
-/***********************************************************************************************/
 /**
  * Sends a register message to /websocket endpoint
  */
-function register(){
-    console.log("Registering device on the WebSocket connection");
+function register(config){
+    console.log("Registering device on the WebSocket connection " );
     try{
-        var registerMessage = '{"type":"register", "sdid":"'+cloud_light_id+'", "Authorization":"bearer '+token+'", "cid":"'+getTimeMillis()+'"}';
+        var registerMessage = '{"type": "register", '+
+                              ' "sdid": "'+ config.artikCloud.devices.artikCloudLight.deviceId + '" ,' +
+                              ' "Authorization": "bearer ' +config.artikCloud.devices.artikCloudLight.deviceToken + '" ,' +
+                              ' "cid":" ' + getTimeMillis()+ '" }' ;
         console.log('Sending register message ' + registerMessage + '\n');
         ws.send(registerMessage, {mask: true});
-        isWebSocketReady = true;
     }
     catch (e) {
         console.error('Failed to register messages. Error in registering message: ' + e.toString());
@@ -119,15 +104,15 @@ function register(){
 
 
 /**
- * Send one message to SAMI
+ * Send ACK message to ARTIK CLoud
  */
-function sendStateToSami(){
+function sendStateToArtikCloud(){
     try{
         ts = ', "ts": '+getTimeMillis();
         var data = {
               "state": myLEDState
             };
-        var payload = '{"sdid":"'+cloud_light_id+'"'+ts+', "data": '+JSON.stringify(data)+', "cid":"'+getTimeMillis()+'"}';
+        var payload = '{"sdid":"'+config.artikCloud.devices.artikCloudLight.deviceId+'"'+ts+', "data": '+JSON.stringify(data)+', "cid":"'+getTimeMillis()+'"}';
         console.log('Sending payload ' + payload + '\n');
         ws.send(payload, {mask: true});
     } catch (e) {
@@ -139,16 +124,6 @@ function sendStateToSami(){
 /**
  * Handle Actions
    Example of the received message with Action type:
-
-   {
-   "type":"action","cts":1451436813630,"ts":1451436813631,
-   "mid":"37e1d61b61b74a3ba962726cb3ef62f1",
-   "sdid":"fde8715961f84798a841be23480b8ce5",
-   "ddid":"fde8715961f84798a841be23480b8ce5",
-   "data":{"actions":[{"name":"setOn","parameters":{}}]},
-   "ddtid":"dtf3cdb9880d2e418f915fb9252e267051","uid":"650a7c8b6ca44730b077ce849af64e90","mv":1
-   }
-
  */
 function handleRcvMsg(msg){
     var msgObj = JSON.parse(msg);
@@ -159,7 +134,7 @@ function handleRcvMsg(msg){
     var actionName = actions[0].name; //assume that there is only one action in actions
     console.log("The received action is " + actionName);
 
-    if(ddid == cloud_light_id)
+    if(ddid == config.artikCloud.devices.artikCloudLight.deviceId )
     {
       var newState;
       if (actionName.toLowerCase() == "seton") {
@@ -182,16 +157,50 @@ function handleRcvMsg(msg){
  */
 
 
-console.log(' Starting LAB ---> ARTIK Cloud Light Device \n');
-start();
 
 
-//toggleLED(1);
 
-//toggleLED(false);
+// Check if a config file was passed as a parameter
+if (process.argv.length != 4) {
+  console.log('Usage: node artik_cloud_light_ws.js <config filename> <A530/A710>');
+  process.exit(0); 
+}
+else {
+
+  console.log(' Starting LAB ---> ARTIK Cloud Light Device \n');
+
+  // Check if the config file exists
+  var configFile = './' + process.argv[2];
+  fs.exists(configFile, function (exists) {
+    if (!exists) {
+          console.log('error', 'Config file (%s) doesn\'t exist', configFile);
+          process.exit(0); 
+      } 
+  }); 
+
+  var config = require(configFile);
+
+  //check if the module number is entered correctly
+  for (var i = 0; i < config.module.length; i++ ) {
+    if (config.module[i].type === process.argv[3] )
+    {
+      console.log(' ***** module type %s', config.module[i].type);          
+      moduleIndex = i;
+      break;
+    }    
+  }            
+  if(i == config.module.length)
+  {
+    console.log('Error', " Illegal Module Number it should be one of below instaed of ", process.argv[3] );
+    for (var i = 0; i < config.module.length; i++ ) 
+    {
+      console.log(config.module[i].type, ',' );
+    }  
+
+    process.exit(0);
+  }
+}
+
+start(configFile,moduleIndex);
 
 process.on('SIGINT', exit);
-
-
-
-

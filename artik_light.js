@@ -16,15 +16,12 @@
 
 var myLEDState = 0;
 
-var Gpio = require('onoff').Gpio,
-    led = new Gpio(135, 'out'),
-    led2 = new Gpio(134, 'out'),
-    led3 = new Gpio(129, 'out'),
-    led4 = new Gpio(127, 'out'),
-    led5 = new Gpio(126, 'out'),
-    led6 = new Gpio(125, 'out');
+var Gpio = require('onoff').Gpio;
+var led, led2; // will be initialized upon reading from the config file
 
 var sleep = require('sleep');
+
+var fs = require('fs');
 
 function exit() {
   led.unexport();
@@ -38,13 +35,12 @@ function getTimeMillis(){
     return parseInt(Date.now().toString());
 }
 
-/**
- * Create a websocket connection and setup GPIO pin
- */
-function start() {
+function start(configFile, moduleIndex) {
 
-  console.log("Hello World....");
+  console.log("Initializing the GPIOs for Light");
   
+  led  = new Gpio(config.module[moduleIndex].led.gpio1, 'out'),
+  led2 = new Gpio(config.module[moduleIndex].led.gpio2, 'out');  
 }
 
 
@@ -53,7 +49,7 @@ function toggleLED(value) {
   console.log('Toggle LED Called '+value);
 	led.writeSync( (value?1:0) , function(error) {
           if(error) throw error;
-             console.log('toggleLED: wrote ' + value + ' to pin #' + myPin);
+             console.log('toggleLED: wrote ' + value + ' to pin #' + led);
              myLEDState = value;
     });
 // console.log(' out of toggleLED');
@@ -66,8 +62,51 @@ function toggleLED(value) {
  */
 
 
-console.log(' Starting LAB ---> Blink ARTIK Light Device \n');
-start();
+
+
+//Validate the input parameters
+if (process.argv.length != 4) {
+  console.log('Usage: node artik_light.js <config filename> <A530/A710>');
+  process.exit(0); 
+} 
+else {
+
+  console.log(' Starting LAB ---> Blink ARTIK Light Device \n');
+  
+  // Check if the config file exists
+  var configFile = './' + process.argv[2];
+  fs.exists(configFile, function (exists) {
+    if (!exists) {
+          console.log('error', 'Config file (%s) doesn\'t exist', configFile);
+          process.exit(0); 
+      } 
+  }); 
+
+  var config = require(configFile);
+
+  //check if the module number is entered correctly
+  for (var i = 0; i < config.module.length; i++ ) {
+    if (config.module[i].type === process.argv[3] )
+    {
+      console.log(' ***** module type %s', config.module[i].type);          
+      moduleIndex = i;
+      break;
+    }    
+  }            
+  if(i == config.module.length)
+  {
+    console.log('Error', " Illegal Module Number it should be one of below instaed of ", process.argv[3] );
+    for (var i = 0; i < config.module.length; i++ ) 
+    {
+      console.log(config.module[i].type, ',' );
+    }  
+
+    process.exit(0);
+  }
+}
+
+start(configFile,moduleIndex);
+
 while(1){
  toggleLED(1);
  sleep.sleep(2);
@@ -75,7 +114,3 @@ while(1){
  sleep.sleep(2);
 }
 process.on('SIGINT', exit);
-
-
-
-

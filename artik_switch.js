@@ -14,16 +14,10 @@
  * limitations under the License.
  */
 
- var Gpio = require('onoff').Gpio,
-    button = new Gpio(121, 'in', 'both');
-    gnd = new Gpio(123,'out');
-    led = new Gpio(135,'out');
+var fs = require('fs');
 
-    ledx = new Gpio(134,'out');
-    ledx = new Gpio(129,'out');
-    ledx = new Gpio(127,'out');
-    ledx = new Gpio(126,'out');
-    ledx = new Gpio(125,'out');
+var Gpio = require('onoff').Gpio;
+var button, button2, led;
  
 var myButtonCount=0;
  var myButtonState=false;
@@ -32,6 +26,23 @@ function exit() {
   button.unexport();
   led.unexport();
   process.exit();
+}
+
+function start(configFile, moduleIndex) {
+
+  console.log("Initializing the GPIOs for Button and Light");
+  
+  led = new Gpio(config.module[moduleIndex].led.gpio1, 'out'),
+
+  button = new Gpio(config.module[moduleIndex].button.gpio1, 'in','both');
+  if((config.module[moduleIndex].type === "A520")||(config.module[moduleIndex].type === "A1020"))
+  {
+    button2 = new Gpio(config.module[moduleIndex].button.gpio2, 'out'); //For A520 and 1020 the additional pin is used a gnd
+  }
+  else
+  {
+    button2 = new Gpio(config.module[moduleIndex].button.gpio1, 'in','both');
+  }  
 }
 
 function toggleLED(value) {
@@ -60,8 +71,50 @@ function toggleButton(err, state){
 }
 
 /*  End of console  ****/
-  console.log('starting cloud switch'); 
 
+
+//Validate the input parameters
+if (process.argv.length != 4) {
+  console.log('Usage: node artik_switch.js <config filename> <A530/A710>');
+  process.exit(0); 
+} 
+
+else {
+
+  console.log('Starting switch'); 
+  // Check if the config file exists
+  var configFile = './' + process.argv[2];
+  fs.exists(configFile, function (exists) {
+    if (!exists) {
+          console.log('error', 'Config file (%s) doesn\'t exist', configFile);
+          process.exit(0); 
+      } 
+  }); 
+
+  var config = require(configFile);
+
+  //check if the module number is entered correctly
+  for (var i = 0; i < config.module.length; i++ ) {
+    if (config.module[i].type === process.argv[3] )
+    {
+      console.log(' ***** module type %s', config.module[i].type);          
+      moduleIndex = i;
+      break;
+    }    
+  }            
+  if(i == config.module.length)
+  {
+    console.log('Error', " Illegal Module Number it should be one of below instaed of ", process.argv[3] );
+    for (var i = 0; i < config.module.length; i++ ) 
+    {
+      console.log(config.module[i].type, ',' );
+    }  
+
+    process.exit(0);
+  }
+}
+
+start(configFile,moduleIndex);
 
 
 button.watch(toggleButton);

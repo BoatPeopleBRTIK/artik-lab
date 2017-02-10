@@ -13,53 +13,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- var sami = "https://api.samsungsami.io/v1.1/messages";
- var cloud_switch_id = "08027d8460e34a0db81c3268285da1e9";
- var token = "33b5e6833b88476890f410ee02dafb4b";
-/**
- * USER TOKEN:The token(/bearer) information obtained from calling the self API is the user token
- * The user token is valid as long as the user is logged into the artik cloud account by default
- * 
- * DEVICE TOKEN: The token(/bearer) information obtained from attaching the device to the user account 
- * is the Device token. It is valid as long as the device is attached to the user account by default
- * 
- * APPLICATION TOKEN:
- * The session token is valid for 15 min since it is created by default
- **/
 
-// var ddid = "c15fae7f2e584eeebb3b0ef6fa917315";
-/* 
- var serialport = require("serialport")
- var SerialPort = serialport.SerialPort;
- var sp = new SerialPort("/dev/ttyACM0", {
- 	baudrate: 9600,
- 	parser: serialport.parsers.readline("\n")
- });
- */
-
- var Client = require("node-rest-client").Client;
- var c = new Client();
-  var Gpio = require('onoff').Gpio,
-    button = new Gpio(121, 'in', 'both');
-    gnd = new Gpio(123,'out');
+var fs = require('fs');
+var Client = require("node-rest-client").Client;
+var c = new Client();
+var Gpio = require('onoff').Gpio;
+var button, button2;
     
 var myButtonCount=0;
- var myButtonState=false;
+var myButtonState=false;
 
 function exit() {
   button.unexport();
   process.exit();
 }
 
+function start(configFile, moduleIndex) {
+
+
+  console.log("Using "+config.artikCloud.url.restUrl);
+  
+  button = new Gpio(config.module[moduleIndex].button.gpio1, 'in','both');
+  if((config.module[moduleIndex].type === "A520")||(config.module[moduleIndex].type === "A1020"))
+  {
+    button2 = new Gpio(config.module[moduleIndex].button.gpio2, 'out'); //For A520 and 1020 the additional pin is used a gnd
+  }
+  else
+  {
+    button2 = new Gpio(config.module[moduleIndex].button.gpio1, 'in','both');
+  }
+}
  function build_mesg (newState, ts) {
  
  	var args = {
  		headers: {
  			"Content-Type": "application/json",
- 			"Authorization": "Bearer "+token 
+ 			"Authorization": "Bearer "+config.artikCloud.devices.artikCloudSwitch.deviceToken 
  		},  
  		data: { 
-     			"sdid": cloud_switch_id,
+     			"sdid": config.artikCloud.devices.artikCloudSwitch.deviceId, 
  			"ts": ts,
  			"type": "message",
  			"data": {
@@ -73,14 +65,14 @@ function exit() {
 
 function toggleButton(err, state){
 
-  if( (myButtonCount++) %2 ) //the button, we have do not maintain the state memory, hence doing it in SW
+  if( (myButtonCount++) %2 ) //the button, we have in A520 do not maintain the state memory, hence doing it in SW
   {
 
     myButtonState = myButtonState ? false : true ; // toggle my button state;
     console.log('my current Button State '+myButtonState);
     var args = build_mesg(myButtonState, new Date().valueOf());
 
-    c.post(sami, args, function(data, response) {            
+    c.post(config.artikCloud.url.restUrl, args, function(data, response) {            
       console.log(data);
           });  
  
@@ -89,10 +81,55 @@ function toggleButton(err, state){
 
 }
 
-/*  End of console  ****/
-  console.log('starting cloud switch'); 
+
+
+/**
+ * All start here
+ */
 
 
 
+// Check if a config file was passed as a parameter
+if (process.argv.length != 4) {
+  console.log('Usage: node artik_cloud_switch_rest.js <config filename> <A530/A710>');
+  process.exit(0); 
+}
+else {
+
+  console.log(' Starting LAB ---> ARTIK Cloud Switch Device \n' );	
+
+  // Check if the config file exists
+  var configFile = './' + process.argv[2];
+  fs.exists(configFile, function (exists) {
+    if (!exists) {
+          console.log('Error', 'Config file (%s) doesn\'t exist', configFile);
+          process.exit(0);
+      } 
+  }); 
+
+  var config = require(configFile);
+
+  //check if the module number is entered correctly
+  for (var i = 0; i < config.module.length; i++ ) {
+    if (config.module[i].type === process.argv[3] )
+    {
+      console.log(' ***** module type %s', config.module[i].type);          
+      moduleIndex = i;
+      break;
+    }    
+  }            
+  if(i == config.module.length)
+  {
+    console.log('Error', " Illegal Module Number it should be one of below instaed of ", process.argv[3] );
+    for (var i = 0; i < config.module.length; i++ ) 
+    {
+      console.log(config.module[i].type, ',' );
+    }  
+
+    process.exit(0);
+  }
+}
+
+start(configFile,moduleIndex);
 button.watch(toggleButton);
 process.on('SIGINT', exit);

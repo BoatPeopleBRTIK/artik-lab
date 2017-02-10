@@ -1,0 +1,89 @@
+{
+	"artikCloud":
+	{
+		"url":
+		{
+			"webSocketUrl": "wss://api.artik.cloud/v1.1/websocket?ack=true", 
+			"restUrl": "https://api.artik.cloud/v1.1/messages", 
+			"coapUrl": "coaps://coaps-api.artik.cloud",
+			"accountsUrl": "https://accounts.artik.cloud"
+		},
+		
+		"devices":
+		{
+			"artikCloudLight":
+			{
+				"type": "ARTIK Cloud Light",
+				"deviceId": "--ARTIK_Cloud_Light_ID--",
+				"deviceToken": "--ARTIK_Cloud_Light_DeviceToken--"
+			},
+
+			"artikCloudSwitch":
+			{
+				"type": "ARTIK Cloud Switch",
+				"deviceId": "--ARTIK_Cloud_Switch_ID--",
+				"deviceToken": "--ARTIK_Cloud_Switch_DeviceToken--"
+			}
+		},
+
+		"user":
+		{
+			"userId": "--UserID--",
+			"userToken": "--userToken--"
+		}
+	
+	},
+
+	"proxy":
+	{
+		"logLevel": "info",
+		"pullMessages": true,
+		"pullMessagesPeriodMs": 30000
+	},
+
+
+	"module":
+	[	
+		{
+			"type": "A520",
+			"button":
+			{
+				"gpio1": 121,
+				"gpio2": 123
+			},
+			"led":
+			{
+				"gpio1": 135,
+				"gpio2": 134
+			}
+		},
+
+		{
+			"type": "A530",
+			"button":
+			{
+				"gpio1": 30,
+				"gpio2": 32
+			},
+			"led":
+			{
+				"gpio1": 28,
+				"gpio2": 38
+			}
+		},
+
+        {
+            "type": "A710",
+            "button":
+            {
+                "gpio1": 30,
+                "gpio2": 32
+            },
+            "led":
+            {
+                "gpio1": 28,
+                "gpio2": 38
+            }
+        }
+	]
+}
