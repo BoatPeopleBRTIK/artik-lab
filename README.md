@@ -24,7 +24,7 @@ The below steps walks through Artik cloud account creation and access the cloud 
 The sample cloudswitch and cloudLight programs need their respective token information to be updated in order for them to be uniquely identified by the ARTIK cloud.
 
 3.1)	Navigate to the API Console 
-https://api-console.samsungsami.io/sami 
+https://developer.artik.cloud/api-console/
 3.2)	Click on Sign In
 Credentials may be request if so use the same one as step 1.2.
 3.3)	Allow access to data for modification
@@ -54,8 +54,8 @@ Update var bearer with the info from step 3.6
 Update var bearer with the info from step 3.6w
 4.10)	Exit vi and save
 5.0)	Set a Rule in the rules engine
-5.1)	Click on Rules at the top of the SAMIIO portal
- https://portal.samsungsami.io/#/rules
+5.1)	Click on Rules at the top of the ARTIK portal
+ https://my.artik.cloud/rules
 5.2)	Click create new rule
  
 5.3)	Create two rules in rules engine
@@ -69,7 +69,7 @@ Update var bearer with the info from step 3.6w
 
 7.0)	Visualize the data
 
-Go back to the User Portal (https://portal.samsungsami.io/) to visualize the data sent to ARTIK cloud by the ARTIK connected cloud light and the cloud switch. Click the device name on the dashboard
+Go back to the User Portal (https://my.artik.cloud/data) to visualize the data sent to ARTIK cloud by the ARTIK connected cloud light and the cloud switch. Click the device name on the dashboard
  
 Click the "+/- CHARTS" button and check the data fields.
  
