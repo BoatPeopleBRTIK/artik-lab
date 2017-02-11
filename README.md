@@ -1,5 +1,5 @@
 # artik-lab
-This repository contains the sample source files to demostrate Artik cloud access from Artik platform, using node.js 
+This repository contains the source code for ARTIK lab exercises,
 
 =============
 The below steps walks through Artik cloud account creation and access the cloud using a REST api and cloud example
