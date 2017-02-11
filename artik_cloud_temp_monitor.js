@@ -20,8 +20,8 @@ var exists = require('fs-exists-sync');
 var Client = require("node-rest-client").Client
 var c = new Client();
 var restUrl = "https://api.artik.cloud/v1.1/messages"
-var token = "31667ffda8944b1080e7218fae5d84fa" 
-var srcDeviceId = '991d281b787942008a472163cbc508a2' 
+var token = "--ARTIK_Cloud_ Temperature_monitor _DeviceToken--"
+var srcDeviceId = "--ARTIK_Cloud_Temperature_monitor_ID--"
 
 
 function build_mesg (newState, ts) {
